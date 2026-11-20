@@ -1,3 +1,90 @@
+
+/* 2. Authentication controller review
+You have implemented two important APIs.
+A. Registration API
+Implemented
+Endpoint:
+POST /api/auth/register
+
+
+Your registration flow:
+Receive registration request
+
+
+Validate name, email and password
+
+
+Normalize email
+
+
+Check existing user
+
+
+Hash password using bcrypt
+
+
+Create customer account in MongoDB
+
+
+201 Created
+Return user information
+
+
+Something you implemented correctly
+const hashedPassword = await bcrypt.hash(password, 12);
+
+
+Here, 12 is the bcrypt cost factor.
+
+bcrypt uses this factor to control the computational effort required for hashing.
+
+You also correctly prevent users from choosing their own role during public registration:
+role: "customer"
+
+
+This prevents someone from submitting:
+{
+  "name": "Test",
+  "email": "test@example.com",
+  "password": "Password123",
+  "role": "admin"
+}
+
+
+and becoming an administrator through public registration.
+
+Excellent decision. */
+
+/* B. Login API
+Implemented
+Endpoint:
+POST /api/auth/login
+
+
+Your login flow:
+1. Receive email and password.
+2. Validate required fields.
+3. Normalize email.
+4. Find the user in MongoDB.
+5. Retrieve the password hash.
+6. Compare the submitted password using bcrypt.
+7. Check whether the account is active.
+8. Generate JWT.
+9. Return the token and user details.
+Your password comparison is correct:
+const isPasswordValid = await bcrypt.compare(
+    password,
+    user.password
+);
+
+
+Remember:
+- Registration hashes the password.
+- Login compares the plain-text submitted password against the stored hash.
+- You never need to decrypt a bcrypt password.
+*/
+
+
 import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
@@ -165,7 +252,8 @@ export const loginUser = async (
         // 7. Generate JWT token
         const token = generateToken(
             user._id.toString(),
-            user.role
+            user.role,
+            user.name
         );
 
         // 8. Return login response
@@ -191,3 +279,15 @@ export const loginUser = async (
         });
     }
 };
+
+export const getProfile = async (req: Request, res: Response): Promise<void> => {
+    res.status(200).json({
+        success: true,
+        message: "Profile fetched successfully",
+        user: {
+            userId: req.user?.userId,
+            role: req.user?.role,
+            name: req.user?.name
+        }
+    })
+}
