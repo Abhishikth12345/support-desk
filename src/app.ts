@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 
 //Add this import
 import authRoutes from "./routes/auth.route.js";
+import adminRoutes from "./routes/admin.routes.js"
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(express.json());
 
 //Register the authentication routes here
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Health check API
 app.get("/api/health", (req, res) => {
