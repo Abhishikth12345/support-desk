@@ -1,31 +1,30 @@
-
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-
-//Add this import
 import authRoutes from "./routes/auth.route.js";
-import adminRoutes from "./routes/admin.routes.js"
+import adminRoutes from "./routes/admin.routes.js";
+import ticketRoutes from "./routes/ticket.routes.js";
 
 const app = express();
 
-// Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json());
 
-//Register the authentication routes here
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/tickets", ticketRoutes);
 
-// Health check API
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
     message: "SupportDesk API is running",
-    database:
-      mongoose.connection.readyState === 1
-        ? "connected"
-        : "disconnected",
+    database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
   });
 });
 

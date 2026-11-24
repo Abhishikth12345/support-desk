@@ -1,3 +1,8 @@
 node_modules/
 dist/
 .env
+*.env.local
+doc_full.txt
+doc.txt
+frontend/.next/
+frontend/node_modules/
