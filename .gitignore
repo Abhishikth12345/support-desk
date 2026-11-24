@@ -1,8 +1,21 @@
+# Dependencies
 node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Production builds
 dist/
+backend/dist/
+frontend/.next/
+frontend/out/
+
+# Environment variables
 .env
+backend/.env
 *.env.local
+backend/*.env.local
+frontend/*.env.local
+
+# Temporary / documentation
 doc_full.txt
 doc.txt
-frontend/.next/
-frontend/node_modules/

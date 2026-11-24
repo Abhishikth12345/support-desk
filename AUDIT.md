@@ -138,7 +138,7 @@ You can verify the entire application locally right now before pushing:
 ### Step A: Start the Backend Server
 In your first terminal:
 ```bash
-cd D:\support-desk
+cd D:\support-desk\backend
 npm run dev
 ```
 * The backend will connect to MongoDB and listen on `http://localhost:5000`.
@@ -183,7 +183,7 @@ npm run dev
    * **Name:** `support-desk-api`
    * **Region:** Any close region (e.g., Singapore, Frankfurt, Oregon)
    * **Branch:** `main`
-   * **Root Directory:** `.` *(leave blank or put a dot)*
+   * **Root Directory:** `backend`
    * **Runtime:** `Node`
    * **Build Command:** `npm install && npm run build`
    * **Start Command:** `npm start`
