@@ -33,6 +33,15 @@ async function runCheck() {
       "POST /api/tickets without JWT should return 401 Unauthorized"
     );
 
+    const forgotRes = await fetch(`${baseUrl}/api/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "any-user@example.com" }),
+    });
+    assert.equal(forgotRes.status, 200, "Forgot password should return status 200");
+    const forgotData = await forgotRes.json();
+    assert.equal(forgotData.success, true, "Forgot password should return success: true");
+
     console.log("All runnable checks passed successfully.");
   } finally {
     server.close();

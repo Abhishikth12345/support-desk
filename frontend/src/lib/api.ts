@@ -31,6 +31,31 @@ export interface TicketItem {
   updatedAt: string;
 }
 
+export interface TicketStats {
+  total: number;
+  open: number;
+  inProgress: number;
+  pending: number;
+  resolved: number;
+  closed: number;
+}
+
+export interface AgentUser {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+export interface PaginatedTicketsResponse {
+  success: boolean;
+  count: number;
+  total: number;
+  page: number;
+  pages: number;
+  tickets: TicketItem[];
+}
+
 export const getToken = (): string | null => {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("token");

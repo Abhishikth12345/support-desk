@@ -26,6 +26,10 @@ const VALID_STATUSES: TicketStatus[] = [
   "closed",
 ];
 
+const escapeRegex = (str: string): string => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
 export const createTicket = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
@@ -111,19 +115,83 @@ export const getTickets = async (req: Request, res: Response): Promise<void> => 
       filter.priority = req.query.priority;
     }
 
+    if (typeof req.query.category === "string" && VALID_CATEGORIES.includes(req.query.category as TicketCategory)) {
+      filter.category = req.query.category;
+    }
+
+    const search = req.query.search;
+    if (typeof search === "string" && search.trim().length > 0 && search.trim().length <= 100) {
+      const escaped = escapeRegex(search.trim());
+      filter.$or = [
+        { ticketNumber: { $regex: escaped, $options: "i" } },
+        { title: { $regex: escaped, $options: "i" } },
+        { description: { $regex: escaped, $options: "i" } },
+      ];
+    }
+
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 10));
+    const skip = (page - 1) * limit;
+
+    const total = await Ticket.countDocuments(filter);
     const tickets = await Ticket.find(filter)
       .populate("createdBy", "name email role")
       .populate("assignedTo", "name email role")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.status(200).json({
       success: true,
       count: tickets.length,
+      total,
+      page,
+      pages: Math.ceil(total / limit) || 1,
       tickets,
     });
   } catch (error) {
     console.error("Get tickets error:", error);
     res.status(500).json({ success: false, message: "Failed to fetch tickets" });
+  }
+};
+
+export const getTicketStats = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: "Authentication required" });
+      return;
+    }
+
+    const baseFilter: Record<string, unknown> = {};
+    if (req.user.role === "customer") {
+      baseFilter.createdBy = req.user.userId;
+    } else if (req.user.role === "agent" && req.query.assignedOnly === "true") {
+      baseFilter.assignedTo = req.user.userId;
+    }
+
+    const [total, open, inProgress, pending, resolved, closed] = await Promise.all([
+      Ticket.countDocuments(baseFilter),
+      Ticket.countDocuments({ ...baseFilter, status: "open" }),
+      Ticket.countDocuments({ ...baseFilter, status: "in_progress" }),
+      Ticket.countDocuments({ ...baseFilter, status: "pending" }),
+      Ticket.countDocuments({ ...baseFilter, status: "resolved" }),
+      Ticket.countDocuments({ ...baseFilter, status: "closed" }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        total,
+        open,
+        inProgress,
+        pending,
+        resolved,
+        closed,
+      },
+    });
+  } catch (error) {
+    console.error("Get ticket stats error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch ticket stats" });
   }
 };
 
