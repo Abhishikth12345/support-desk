@@ -116,10 +116,14 @@ export async function apiFetch<T>(
       success: true,
       data: json,
     };
-  } catch {
+  } catch (err: unknown) {
+    const isLocal = typeof window !== "undefined" && window.location.hostname === "localhost";
+    const tip = isLocal 
+      ? `Cannot connect to API at ${API_BASE}. Make sure the backend server is running on port 5000 (cd backend; npm run dev).`
+      : "Network error: Unable to connect to support desk server. Please check your internet connection.";
     return {
       success: false,
-      message: "Network error. Please check server connection.",
+      message: tip,
     };
   }
 }

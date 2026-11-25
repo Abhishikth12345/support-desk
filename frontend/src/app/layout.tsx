@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SupportDesk – Enterprise Issue Management",
-  description: "Modern, scalable ticketing and customer support system",
+  title: "SupportDesk – Issue Management System",
+  description: "Modern, simple ticketing and customer support workspace",
 };
 
 export default function RootLayout({
@@ -12,24 +12,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                const t = localStorage.getItem('theme');
-                if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                  document.documentElement.classList.add('dark');
-                } else {
-                  document.documentElement.classList.remove('dark');
-                }
-              } catch (_) {}
-            `,
-          }}
-        />
-      </head>
-      <body className="bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 antialiased min-h-screen transition-colors duration-150">
+    <html lang="en" className="dark">
+      <body className="bg-[#0a0e17] text-[#f3f4f6] antialiased min-h-screen">
         {children}
       </body>
     </html>

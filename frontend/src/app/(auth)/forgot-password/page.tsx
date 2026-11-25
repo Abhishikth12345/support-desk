@@ -3,13 +3,20 @@
 import { useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
-import ThemeToggle from "@/components/ThemeToggle";
+import {
+  Headphones,
+  Mail,
+  ArrowRight,
+  ArrowLeft,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -17,98 +24,112 @@ export default function ForgotPasswordPage() {
     setError("");
     setLoading(true);
 
-    const res = await apiFetch<{ message: string }>("/api/auth/forgot-password", {
+    const res = await apiFetch("/api/auth/forgot-password", {
       method: "POST",
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email: email.trim() }),
     });
 
     setLoading(false);
 
-    if (res.success) {
-      setSubmitted(true);
-      setMessage(
-        res.data?.message ||
-          "If an account with that email exists, password reset instructions have been sent."
-      );
-    } else {
-      setError(res.message || "Failed to submit request.");
+    if (!res.success) {
+      setError(res.message || "Failed to process request.");
+      return;
     }
+
+    setSubmitted(true);
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100">
-      <header className="p-4 flex items-center justify-between max-w-6xl w-full mx-auto">
+    <div className="min-h-screen flex flex-col bg-[#0a0e17] text-[#f3f4f6]">
+      <header className="p-4 sm:p-6 flex items-center justify-between max-w-6xl w-full mx-auto">
         <Link href="/" className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-md bg-indigo-600 flex items-center justify-center text-white font-semibold text-xs">
-            SD
+          <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+            <Headphones className="w-4 h-4" />
           </div>
-          <span className="font-semibold text-sm tracking-tight text-slate-900 dark:text-white">
+          <span className="font-bold text-base tracking-tight text-white">
             SupportDesk
           </span>
         </Link>
-        <ThemeToggle />
       </header>
 
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
+      <main className="flex-1 flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-sm">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <div className="bg-[#111622] p-8 rounded-2xl border border-[#1f293d] shadow-xl">
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white mb-4 transition"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Sign In</span>
+            </Link>
+
+            <h1 className="text-2xl font-bold tracking-tight text-white">
               Reset Password
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Enter your email to receive recovery instructions
+            <p className="text-xs text-slate-400 mt-1">
+              Enter your email address to receive reset instructions
             </p>
 
+            {error && (
+              <div className="mt-4 p-3 bg-rose-950/40 border border-rose-900/60 text-rose-300 text-xs rounded-xl flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
             {submitted ? (
-              <div className="mt-5 space-y-4">
-                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 text-xs rounded-md leading-relaxed">
-                  {message}
+              <div className="mt-6 p-4 rounded-xl bg-emerald-950/40 border border-emerald-900/60 text-xs text-emerald-300">
+                <div className="flex items-center gap-2 font-semibold mb-1">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>Request Received</span>
                 </div>
-                <Link
-                  href="/login"
-                  className="block w-full text-center py-2 px-4 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-medium rounded-md text-xs transition"
-                >
-                  Return to Sign In
-                </Link>
+                <p className="leading-relaxed">
+                  If an account exists for <span className="text-white font-medium">{email}</span>, password reset instructions have been dispatched.
+                </p>
+                <div className="mt-4 pt-3 border-t border-emerald-900/60">
+                  <Link href="/login" className="font-semibold text-emerald-400 hover:underline">
+                    Return to Sign In &rarr;
+                  </Link>
+                </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-                {error && (
-                  <div className="p-2.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-xs rounded-md">
-                    {error}
-                  </div>
-                )}
-
+              <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Email Address
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                    Account Email
                   </label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@example.com"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs rounded-xl border border-[#1f293d] bg-[#0c101a] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md shadow-sm transition disabled:opacity-50 text-xs"
+                  className="w-full mt-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-xs shadow-sm transition flex items-center justify-center gap-2"
                 >
-                  {loading ? "Submitting..." : "Send Reset Instructions"}
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Sending Instructions...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Send Instructions</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
                 </button>
-
-                <div className="text-center pt-2">
-                  <Link
-                    href="/login"
-                    className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition"
-                  >
-                    &larr; Back to Sign In
-                  </Link>
-                </div>
               </form>
             )}
           </div>

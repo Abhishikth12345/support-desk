@@ -4,7 +4,17 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch, setSession, type UserSession } from "@/lib/api";
-import ThemeToggle from "@/components/ThemeToggle";
+import {
+  Headphones,
+  Mail,
+  Lock,
+  User,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -27,121 +37,115 @@ export default function RegisterPage() {
     setLoading(true);
 
     const res = await apiFetch<{
+      token: string;
       user: UserSession;
     }>("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify({ name, email, password }),
-    });
-
-    if (!res.success) {
-      setLoading(false);
-      setError(res.message || "Registration failed. Try a different email.");
-      return;
-    }
-
-    const loginRes = await apiFetch<{
-      token: string;
-      user: UserSession;
-    }>("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),
     });
 
     setLoading(false);
 
-    if (loginRes.success && loginRes.data) {
-      setSession(loginRes.data.token, loginRes.data.user);
-      router.push("/dashboard");
-    } else {
-      router.push("/login");
+    if (!res.success || !res.data) {
+      setError(res.message || "Registration failed. Please try again.");
+      return;
     }
+
+    setSession(res.data.token, res.data.user);
+    router.push("/dashboard");
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100">
-      <header className="p-4 flex items-center justify-between max-w-6xl w-full mx-auto">
+    <div className="min-h-screen flex flex-col bg-[#0a0e17] text-[#f3f4f6]">
+      <header className="p-4 sm:p-6 flex items-center justify-between max-w-6xl w-full mx-auto">
         <Link href="/" className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-md bg-indigo-600 flex items-center justify-center text-white font-semibold text-xs">
-            SD
+          <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+            <Headphones className="w-4 h-4" />
           </div>
-          <span className="font-semibold text-sm tracking-tight text-slate-900 dark:text-white">
+          <span className="font-bold text-base tracking-tight text-white">
             SupportDesk
           </span>
         </Link>
-        <ThemeToggle />
       </header>
 
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
+      <main className="flex-1 flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-sm">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <div className="bg-[#111622] p-8 rounded-2xl border border-[#1f293d] shadow-xl">
+            <h1 className="text-2xl font-bold tracking-tight text-white">
               Create Account
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Register as a customer to submit and manage tickets
+            <p className="text-xs text-slate-400 mt-1">
+              Sign up to submit and track support tickets
             </p>
 
             {error && (
-              <div className="mt-4 p-2.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-xs rounded-md">
-                {error}
+              <div className="mt-4 p-3 bg-rose-950/40 border border-rose-900/60 text-rose-300 text-xs rounded-xl flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                <span>{error}</span>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                   Full Name
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Jane Doe"
-                  className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Alex Rivera"
+                    className="w-full pl-10 pr-3.5 py-2.5 text-xs rounded-xl border border-[#1f293d] bg-[#0c101a] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                   Email
                 </label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className="w-full px-3 py-2 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className="w-full pl-10 pr-3.5 py-2.5 text-xs rounded-xl border border-[#1f293d] bg-[#0c101a] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Password (8+ chars)
-                  </label>
-                  <span className={`text-[11px] ${password.length >= 8 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
-                    {password.length}/8
-                  </span>
-                </div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Password
+                </label>
                 <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <Lock className="w-4 h-4" />
+                  </div>
                   <input
                     type={showPassword ? "text" : "password"}
                     required
-                    minLength={8}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-3 py-2 pr-10 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Minimum 8 characters"
+                    className="w-full pl-10 pr-10 py-2.5 text-xs rounded-xl border border-[#1f293d] bg-[#0c101a] text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white"
                   >
-                    {showPassword ? "Hide" : "Show"}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
@@ -149,15 +153,25 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md shadow-sm transition disabled:opacity-50 text-xs"
+                className="w-full mt-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-xs shadow-sm transition flex items-center justify-center gap-2"
               >
-                {loading ? "Creating Account..." : "Create Account"}
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Creating Account...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Create Account</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </form>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400">
+            <div className="mt-6 text-center text-xs text-slate-400">
               Already have an account?{" "}
-              <Link href="/login" className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+              <Link href="/login" className="font-semibold text-indigo-400 hover:underline">
                 Sign In
               </Link>
             </div>
