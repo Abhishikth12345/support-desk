@@ -19,6 +19,6 @@ router.get("/", getTickets);
 router.get("/stats", getTicketStats);
 router.get("/:id", getTicketById);
 router.patch("/:id/status", authorize("admin", "manager", "agent"), updateTicketStatus);
-router.patch("/:id/assign", authorize("admin", "manager"), assignTicket);
+router.patch("/:id/assign", authorize("admin", "manager", "agent"), assignTicket);
 
 export default router;

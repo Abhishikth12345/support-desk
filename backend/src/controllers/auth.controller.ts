@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import User from "../models/User.js";
 import { generateToken } from "../utils/jwt.js";
+import { sendWelcomeCredentialsEmail } from "../services/email.service.js";
 
 export const registerUser = async (
     req: Request,
@@ -54,6 +55,15 @@ export const registerUser = async (
             password: hashedPassword,
             role: "customer",
         });
+
+        // Dispatch credentials email asynchronously
+        sendWelcomeCredentialsEmail({
+            to: user.email,
+            name: user.name,
+            role: user.role,
+            password,
+            isCreatedByAdmin: false,
+        }).catch((err) => console.error("Registration email dispatch error:", err));
 
         res.status(201).json({
             success: true,

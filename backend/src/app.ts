@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import authRoutes from "./routes/auth.route.js";
 import adminRoutes from "./routes/admin.routes.js";
 import ticketRoutes from "./routes/ticket.routes.js";
+import aiRoutes from "./routes/ai.routes.js";
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/tickets", ticketRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({

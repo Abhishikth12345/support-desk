@@ -7,6 +7,7 @@ import Ticket, {
 } from "../models/Ticket.js";
 import Counter from "../models/Counter.js";
 import User from "../models/User.js";
+import { sendTicketAssignmentEmail } from "../services/email.service.js";
 
 const VALID_CATEGORIES: TicketCategory[] = [
   "technical",
@@ -103,8 +104,10 @@ export const getTickets = async (req: Request, res: Response): Promise<void> => 
 
     if (req.user.role === "customer") {
       filter.createdBy = req.user.userId;
-    } else if (req.user.role === "agent" && req.query.assignedOnly === "true") {
+    } else if (req.query.assigned === "me" || (req.user.role === "agent" && req.query.assignedOnly === "true")) {
       filter.assignedTo = req.user.userId;
+    } else if (req.query.assigned === "unassigned") {
+      filter.assignedTo = null;
     }
 
     if (typeof req.query.status === "string" && VALID_STATUSES.includes(req.query.status as TicketStatus)) {
@@ -289,27 +292,58 @@ export const assignTicket = async (req: Request, res: Response): Promise<void> =
 
     let targetAgentId: string | null = null;
 
-    if (agentId !== null && agentId !== undefined) {
-      if (!mongoose.isValidObjectId(agentId)) {
+    if (agentId !== null && agentId !== undefined && agentId !== "") {
+      const resolvedId = agentId === "me" ? req.user?.userId : agentId;
+
+      if (!resolvedId || !mongoose.isValidObjectId(resolvedId)) {
         res.status(400).json({ success: false, message: "Invalid agent ID" });
         return;
       }
 
-      const agent = await User.findById(agentId);
-      if (!agent || (agent.role !== "agent" && agent.role !== "admin")) {
+      if (req.user?.role === "agent" && resolvedId !== req.user.userId) {
+        res.status(403).json({
+          success: false,
+          message: "Agents may only claim tickets for themselves",
+        });
+        return;
+      }
+
+      const agent = await User.findById(resolvedId);
+      if (!agent || (agent.role !== "agent" && agent.role !== "admin" && agent.role !== "manager")) {
         res.status(400).json({
           success: false,
-          message: "Assigned user must be an active agent or admin",
+          message: "Assigned user must be an active agent, manager, or admin",
         });
         return;
       }
 
       targetAgentId = agent._id.toString();
+    } else {
+      if (req.user?.role === "agent") {
+        res.status(403).json({
+          success: false,
+          message: "Only managers and admins can unassign tickets",
+        });
+        return;
+      }
+    }
+
+    const currentTicket = await Ticket.findById(id);
+    if (!currentTicket) {
+      res.status(404).json({ success: false, message: "Ticket not found" });
+      return;
+    }
+
+    const updateData: Record<string, unknown> = { assignedTo: targetAgentId };
+    if (targetAgentId && currentTicket.status === "open") {
+      updateData.status = "in_progress";
+    } else if (!targetAgentId && currentTicket.status === "in_progress") {
+      updateData.status = "open";
     }
 
     const ticket = await Ticket.findByIdAndUpdate(
       id,
-      { assignedTo: targetAgentId },
+      updateData,
       { new: true }
     )
       .populate("createdBy", "name email role")
@@ -318,6 +352,25 @@ export const assignTicket = async (req: Request, res: Response): Promise<void> =
     if (!ticket) {
       res.status(404).json({ success: false, message: "Ticket not found" });
       return;
+    }
+
+    // Send assignment notification email asynchronously
+    if (
+      targetAgentId &&
+      ticket.assignedTo &&
+      typeof ticket.assignedTo === "object" &&
+      "email" in ticket.assignedTo
+    ) {
+      const assigned = ticket.assignedTo as unknown as { name: string; email: string };
+      sendTicketAssignmentEmail({
+        to: assigned.email,
+        agentName: assigned.name,
+        ticketNumber: ticket.ticketNumber,
+        title: ticket.title,
+        priority: ticket.priority,
+        category: ticket.category,
+        ticketId: ticket._id.toString(),
+      }).catch((err) => console.error("Ticket assignment email error:", err));
     }
 
     res.status(200).json({

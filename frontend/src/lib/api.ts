@@ -56,6 +56,25 @@ export interface PaginatedTicketsResponse {
   tickets: TicketItem[];
 }
 
+export interface AdminUserItem {
+  _id: string;
+  name: string;
+  email: string;
+  role: "admin" | "manager" | "agent" | "customer";
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaginatedUsersResponse {
+  success: boolean;
+  count: number;
+  total: number;
+  page: number;
+  pages: number;
+  users: AdminUserItem[];
+}
+
 export const getToken = (): string | null => {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("token");
