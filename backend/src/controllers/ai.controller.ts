@@ -14,34 +14,7 @@ interface TicketDraft {
 }
 
 const extractTicketDraft = (query: string): TicketDraft | undefined => {
-  const q = query.toLowerCase();
-  const isIssue =
-    q.includes("error") ||
-    q.includes("bug") ||
-    q.includes("fail") ||
-    q.includes("broken") ||
-    q.includes("cannot") ||
-    q.includes("can't") ||
-    q.includes("issue") ||
-    q.includes("problem") ||
-    q.includes("not working") ||
-    q.includes("refund") ||
-    q.includes("charge") ||
-    q.includes("bill") ||
-    q.includes("payment") ||
-    q.includes("reset") ||
-    q.includes("password");
-
-  if (!isIssue && query.length < 15) return undefined;
-
-  const isHowToQuestion =
-    q.startsWith("how to") ||
-    q.startsWith("how can") ||
-    q.startsWith("how do") ||
-    q.startsWith("what is") ||
-    q.startsWith("who is") ||
-    q.startsWith("where is") ||
-    q.startsWith("may i know");
+  const q = query.toLowerCase().trim();
 
   const wantsTicketExplicitly =
     q.includes("create ticket") ||
@@ -50,8 +23,46 @@ const extractTicketDraft = (query: string): TicketDraft | undefined => {
     q.includes("draft ticket") ||
     q.includes("open ticket");
 
-  if (isHowToQuestion && !wantsTicketExplicitly && !q.includes("broken") && !q.includes("error") && !q.includes("not working")) {
-    return undefined;
+  const isRealProblem =
+    q.includes("error") ||
+    q.includes("crash") ||
+    q.includes("bug") ||
+    q.includes("broken") ||
+    q.includes("not working") ||
+    q.includes("doesn't work") ||
+    q.includes("failed to") ||
+    q.includes("cannot access") ||
+    q.includes("can't access") ||
+    q.includes("cannot login") ||
+    q.includes("can't login") ||
+    q.includes("payment failed") ||
+    q.includes("charged twice") ||
+    q.includes("refund request") ||
+    q.includes("service down") ||
+    q.includes("500 error") ||
+    q.includes("404 error");
+
+  const isQuestionOrChat =
+    q.startsWith("where") ||
+    q.startsWith("why") ||
+    q.startsWith("how to") ||
+    q.startsWith("how can") ||
+    q.startsWith("how do") ||
+    q.startsWith("what is") ||
+    q.startsWith("what are") ||
+    q.startsWith("who is") ||
+    q.startsWith("tell me") ||
+    q.startsWith("can you") ||
+    q.startsWith("may i know") ||
+    q === "hi" ||
+    q === "hello" ||
+    q === "hey";
+
+  // Suppress ticket drafting for informational questions or meta questions unless explicitly requested
+  if (!wantsTicketExplicitly) {
+    if (!isRealProblem || isQuestionOrChat) {
+      return undefined;
+    }
   }
 
   let category: TicketDraft["category"] = "general";
@@ -188,7 +199,7 @@ Keep answers professional, friendly, and concise.`;
         }));
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
 
         const response = await fetch("https://text.pollinations.ai/openai", {
           method: "POST",
@@ -212,11 +223,35 @@ Keep answers professional, friendly, and concise.`;
           aiReply = data.choices?.[0]?.message?.content || null;
         }
       } catch (err) {
-        console.warn("Live Neural LLM error, using smart context fallback:", err);
+        console.warn("Live Neural LLM primary error:", err);
       }
     }
 
-    // 5. Intelligent contextual fallback if external network times out
+    // 4b. Secondary fast fallback to plain-text Neural LLM if primary timed out
+    if (!aiReply) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+        const cleanPrompt = `${systemInstruction}\n\nUser Question: ${userQuery}`;
+        const response = await fetch(
+          `https://text.pollinations.ai/${encodeURIComponent(cleanPrompt)}`,
+          { signal: controller.signal }
+        );
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const text = await response.text();
+          if (text && text.trim().length > 0 && !text.includes("<!DOCTYPE") && !text.includes("<html>")) {
+            aiReply = text.trim();
+          }
+        }
+      } catch (err) {
+        console.warn("Secondary LLM fallback error:", err);
+      }
+    }
+
+    // 5. Intelligent contextual fallback if external network is completely unreachable
     if (!aiReply) {
       if (lowerQuery.includes("name")) {
         aiReply = `Your name is ${loggedInName}.`;
@@ -230,10 +265,14 @@ Keep answers professional, friendly, and concise.`;
         aiReply = loggedInRole === "admin"
           ? `Here is how to create a team member:\n1. Click "Team Management" in the sidebar\n2. Click "+ Add Team Member"\n3. Enter their name, email, role, and temporary password\n4. Click "Create Account" to save`
           : `Creating team members is restricted to Administrators. Your current role is "${loggedInRole}". Please sign in with an Administrator account to access the Team Management panel.`;
+      } else if (lowerQuery.includes("where do you get") || lowerQuery.includes("how do you know") || lowerQuery.includes("source") || lowerQuery.includes("who are you")) {
+        aiReply = `I am SupportDesk AI, powered by a neural Large Language Model trained on software engineering, cloud infrastructure, and IT service desk best practices. When you ask about DevOps, CI/CD, or ticketing, I synthesize industry documentation and SupportDesk workflows in real time to assist you.`;
+      } else if (lowerQuery.includes("devops")) {
+        aiReply = `DevOps workflows in SupportDesk include automating ticket routing based on CI/CD build failures, managing production incident SLAs, and connecting monitoring alerts directly to engineering queues. How can I assist you with your DevOps setup?`;
       } else if (lowerQuery === "hi" || lowerQuery === "hello" || lowerQuery.startsWith("hi ")) {
         aiReply = `Hello ${loggedInName}! How can I help you with SupportDesk today?`;
       } else {
-        aiReply = `Hello ${loggedInName}! I can help answer your questions, troubleshoot issues, or prepare a support ticket for our engineering team. How can I assist you with: "${userQuery}"?`;
+        aiReply = `Hello ${loggedInName}! I can answer questions about SupportDesk features, SLAs, tickets, and account permissions. How can I help you today?`;
       }
     }
 
